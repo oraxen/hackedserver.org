@@ -16,7 +16,7 @@ This guide breaks down the tech specs and performance of top anti-cheat plugins 
 
 Modern anti-cheats for Minecraft generally work in two main ways: event-based detection and packet-level analysis. This difference has a huge impact on both accuracy and how well your server runs.
 
-**Packet-based systems** like Karhu Anti-Cheat and Redux AntiCheat intercept player data at the network level, before it even hits the Spigot API or Bukkit events. This method catches cheats closer to the source and has a lighter touch on your server's TPS and main thread performance.
+**Packet-based systems** like Karhu Anti-Cheat and Redux AntiCheat intercept player data at the network level, before it even hits the [Spigot](https://mcserverjars.com/spigot) API or Bukkit events. This method catches cheats closer to the source and has a lighter touch on your server's TPS and main thread performance.
 
 **Event-based systems** watch what players do through the server's API after the server has already started processing the action. They're easier to set up, but this approach can miss clever cheats that mess with data before it ever gets to the event system.
 
@@ -51,7 +51,7 @@ FoxAddition offers deep customization. You can turn off certain checks in specif
 
 Anti-cheat solutions come in all price ranges, from free, open-source projects to paid services with dedicated support. Karhu Anti-Cheat's premium plan, for example, costs a one-time fee of €25 and includes over 100 checks, priority support, and constant updates.
 
-Open-source options like Grim Anti-Cheat give you transparency and are developed by the community, but you'll need more technical know-how to set them up and fix problems.
+Open-source options like Grim Anti-Cheat give you transparency and are developed by the community, but you'll need more technical know-how to set them up and fix problems. Make sure you're running optimized server software like [Paper](https://mcserverjars.com/paper) to get the most out of any anti-cheat solution.
 
 Think about the level of support you'll need based on your team's tech skills and how crucial a solid anti-cheat is for your server's survival.
 
