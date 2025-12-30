@@ -19,7 +19,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint app",
-    "generate:splash": "npx tsx scripts/generate-splash.ts"
+    "generate:thread-html": "npx tsx scripts/generate-thread-html.ts",
+    "generate:splash": "npm run generate:thread-html && npx tsx scripts/generate-splash.ts"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",

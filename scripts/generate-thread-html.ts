@@ -1,4 +1,73 @@
-<!doctype html>
+import fs from "fs";
+import path from "path";
+
+// Import slide data directly
+import { slides, type SlideData } from "../app/data/slides";
+
+const OUTPUT_PATH = path.join(process.cwd(), "public", "thread", "index.html");
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getBackgroundFilename(background: string): string {
+  // Extract just the filename from paths like "/thread/background1.jpg"
+  return path.basename(background);
+}
+
+function generateSlideHtml(slide: SlideData): string {
+  const bgFilename = getBackgroundFilename(slide.background);
+  const isFirstSlide = slide.id === 1;
+
+  if (isFirstSlide || !slide.title) {
+    // Title slide - no content panel
+    return `
+      <!-- Slide ${slide.id} - Title Banner -->
+      <div class="slide${slide.id === 1 ? " active" : ""}" data-slide="${slide.id}">
+        <div
+          class="slide-bg"
+          style="
+            background-image: url(&quot;${bgFilename}&quot;);
+            filter: brightness(1);
+          "
+        ></div>
+      </div>`;
+  }
+
+  const titleHtml = slide.title.replace(/\n/g, "<br />");
+  const contentClass = slide.contentPosition === "left" ? "slide-content left" : "slide-content";
+  const bulletsHtml = slide.bullets
+    ? slide.bullets
+        .map((bullet) => `            <li>\n              ${bullet}\n            </li>`)
+        .join("\n")
+    : "";
+
+  return `
+      <!-- Slide ${slide.id} -->
+      <div class="slide" data-slide="${slide.id}">
+        <div
+          class="slide-bg"
+          style="background-image: url(&quot;${bgFilename}&quot;)"
+        ></div>
+        <div class="${contentClass}">
+          <div class="slide-number">${slide.chapter || ""}</div>
+          <h2 class="slide-title">${titleHtml}</h2>
+          <ul class="slide-bullets">
+${bulletsHtml}
+          </ul>
+        </div>
+      </div>`;
+}
+
+function generateFullHtml(): string {
+  const slidesHtml = slides.map(generateSlideHtml).join("\n");
+  const totalSlides = slides.length;
+
+  return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -454,106 +523,7 @@
       <!-- Glow orbs -->
       <div class="glow-orb orb-1"></div>
       <div class="glow-orb orb-2"></div>
-
-      <!-- Slide 1 - Title Banner -->
-      <div class="slide active" data-slide="1">
-        <div
-          class="slide-bg"
-          style="
-            background-image: url(&quot;header.jpg&quot;);
-            filter: brightness(1);
-          "
-        ></div>
-      </div>
-
-      <!-- Slide 2 -->
-      <div class="slide" data-slide="2">
-        <div
-          class="slide-bg"
-          style="background-image: url(&quot;background1.jpg&quot;)"
-        ></div>
-        <div class="slide-content">
-          <div class="slide-number">Chapter 01</div>
-          <h2 class="slide-title">Instant Client<br />Detection</h2>
-          <ul class="slide-bullets">
-            <li>
-              HackedServer <strong>fingerprints each player's client</strong> on join: Fabric, Forge, Lunar, and dozens of hacked clients.
-            </li>
-            <li>
-              <strong>Mod scanning:</strong> reveal your players' modlists and trigger custom actions per mod.
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Slide 3 -->
-      <div class="slide" data-slide="3">
-        <div
-          class="slide-bg"
-          style="background-image: url(&quot;background2.webp&quot;)"
-        ></div>
-        <div class="slide-content left">
-          <div class="slide-number">Chapter 02</div>
-          <h2 class="slide-title">Deep Lunar<br />Integration</h2>
-          <ul class="slide-bullets">
-            <li>
-              <strong>Full mod visibility:</strong> see every mod your Lunar players have installed.
-            </li>
-            <li>
-              <strong>Granular control:</strong> block Lunar + Fabric combos but allow vanilla Lunar, or trigger actions per mod (<code>sodium</code>, <code>iris</code>…).
-            </li>
-            <li>
-              <strong>Zero setup:</strong> works out of the box, no extra plugins needed.
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Slide 4 -->
-      <div class="slide" data-slide="4">
-        <div
-          class="slide-bg"
-          style="background-image: url(&quot;background3.jpg&quot;)"
-        ></div>
-        <div class="slide-content">
-          <div class="slide-number">Chapter 03</div>
-          <h2 class="slide-title">Staff Tools That<br />Actually Save Time</h2>
-          <ul class="slide-bullets">
-            <li>
-              <strong>Instant alerts</strong> plus optional auto-bans and configurable commands when a risky client joins.
-            </li>
-            <li>
-              <strong>In-game and console checks</strong> via simple commands for quick reviews.
-            </li>
-            <li>
-              <strong>Inventory-style GUI</strong> so staff can visualize detections and toggles in one screen.
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <!-- Slide 5 -->
-      <div class="slide" data-slide="5">
-        <div
-          class="slide-bg"
-          style="background-image: url(&quot;background4.jpg&quot;)"
-        ></div>
-        <div class="slide-content left">
-          <div class="slide-number">Chapter 04</div>
-          <h2 class="slide-title">Built For Serious<br />Networks</h2>
-          <ul class="slide-bullets">
-            <li>
-              <strong>Ultra-lightweight:</strong> minimal CPU/TPS impact and works great alongside your existing anti-cheat.
-            </li>
-            <li>
-              <strong>One plugin</strong> for Spigot/Paper, BungeeCord and Velocity – consistent detections across your network.
-            </li>
-            <li>
-              If fair play and reputation matter, HackedServer is the <strong>fastest, lowest-effort way</strong> to spot unauthorized clients early.
-            </li>
-          </ul>
-        </div>
-      </div>
+${slidesHtml}
     </div>
 
     <!-- Brand badge -->
@@ -567,7 +537,7 @@
     <div class="slide-indicator">
       <span class="current" id="currentSlide">1</span>
       <span>/</span>
-      <span>5</span>
+      <span>${totalSlides}</span>
     </div>
 
     <script>
@@ -631,7 +601,7 @@
           nextSlide();
         } else if (e.key === "ArrowLeft") {
           prevSlide();
-        } else if (e.key >= "1" && e.key <= "5") {
+        } else if (e.key >= "1" && e.key <= "${totalSlides}") {
           goToSlide(parseInt(e.key) - 1);
         }
       });
@@ -653,3 +623,17 @@
     </script>
   </body>
 </html>
+`;
+}
+
+async function main() {
+  console.log("Generating thread HTML from slides.ts...");
+  const html = generateFullHtml();
+  fs.writeFileSync(OUTPUT_PATH, html);
+  console.log(`Generated: ${OUTPUT_PATH}`);
+}
+
+main().catch((err) => {
+  console.error("Failed to generate HTML:", err);
+  process.exit(1);
+});

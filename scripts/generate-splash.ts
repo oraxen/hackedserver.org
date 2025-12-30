@@ -3,8 +3,12 @@ import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
 
-const WIDTH = 2120;
-const HEIGHT = 1200;
+const OUTPUT_WIDTH = 2120;
+const OUTPUT_HEIGHT = 1200;
+const ZOOM_FACTOR = 2.0; // Match Mac Retina display scaling
+// Viewport is smaller; deviceScaleFactor scales it back up to target output size
+const VIEWPORT_WIDTH = Math.round(OUTPUT_WIDTH / ZOOM_FACTOR);
+const VIEWPORT_HEIGHT = Math.round(OUTPUT_HEIGHT / ZOOM_FACTOR);
 const SLIDE_COUNT = 5;
 const OUTPUT_DIR = path.join(process.cwd(), "public", "splash");
 const THREAD_HTML = path.join(process.cwd(), "public", "thread", "index.html");
@@ -20,13 +24,14 @@ async function generateSplashScreenshots() {
     throw new Error(`Thread HTML not found at ${THREAD_HTML}`);
   }
 
-  console.log(`Generating ${SLIDE_COUNT} splash screenshots at ${WIDTH}x${HEIGHT}...`);
+  console.log(`Generating ${SLIDE_COUNT} splash screenshots at ${OUTPUT_WIDTH}x${OUTPUT_HEIGHT}...`);
+  console.log(`Viewport: ${VIEWPORT_WIDTH}x${VIEWPORT_HEIGHT} @ ${ZOOM_FACTOR}x scale`);
   console.log(`Using: ${THREAD_HTML}`);
 
   const browser = await chromium.launch();
   const context = await browser.newContext({
-    viewport: { width: WIDTH, height: HEIGHT },
-    deviceScaleFactor: 1,
+    viewport: { width: VIEWPORT_WIDTH, height: VIEWPORT_HEIGHT },
+    deviceScaleFactor: ZOOM_FACTOR,
   });
 
   const page = await context.newPage();
