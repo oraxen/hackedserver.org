@@ -38,7 +38,7 @@ export const slides: SlideData[] = [
   {
     id: 3,
     theme: "cyan",
-    background: "/thread/background2.jpg",
+    background: "/thread/background2.webp",
     chapter: "Chapter 02",
     title: "Deep Lunar\nIntegration",
     bullets: [
