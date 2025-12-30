@@ -4,6 +4,7 @@ import "./globals.css";
 import { siteConfig } from "./siteConfig";
 import { Navigation } from "./components/ui/Navbar";
 import Footer from "./components/ui/Footer";
+import GoogleAnalytics from "./components/GoogleAnalytics";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -63,6 +64,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${pressStart2P.variable} ${outfit.variable} antialiased`}
       >
+        <GoogleAnalytics />
         <Navigation />
         {children}
         <Footer />

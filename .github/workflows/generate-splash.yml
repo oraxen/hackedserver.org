@@ -1,0 +1,63 @@
+name: Generate Splash Screenshots
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_branch:
+        description: 'Base branch to create PR against'
+        required: true
+        default: 'main'
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium
+
+      - name: Install ImageMagick
+        run: sudo apt-get update && sudo apt-get install -y imagemagick
+
+      - name: Generate screenshots
+        run: npm run generate:splash
+
+      - name: Check for changes
+        id: changes
+        run: |
+          git add public/splash/ public/thread/index.html
+          if git diff --staged --quiet; then
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            echo "changed=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: 'chore: regenerate splash screenshots'
+          title: 'chore: regenerate splash screenshots'
+          body: |
+            This PR updates the splash screenshots to match the current slide content.
+
+            Generated automatically by the `generate-splash` workflow.
+          branch: chore/update-splash-screenshots
+          base: ${{ github.event.inputs.base_branch }}
+          delete-branch: true
+
+      - name: No changes
+        if: steps.changes.outputs.changed == 'false'
+        run: echo "No changes to splash screenshots"

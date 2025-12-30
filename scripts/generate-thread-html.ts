@@ -1,0 +1,639 @@
+import fs from "fs";
+import path from "path";
+
+// Import slide data directly
+import { slides, type SlideData } from "../app/data/slides";
+
+const OUTPUT_PATH = path.join(process.cwd(), "public", "thread", "index.html");
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function getBackgroundFilename(background: string): string {
+  // Extract just the filename from paths like "/thread/background1.jpg"
+  return path.basename(background);
+}
+
+function generateSlideHtml(slide: SlideData): string {
+  const bgFilename = getBackgroundFilename(slide.background);
+  const isFirstSlide = slide.id === 1;
+
+  if (isFirstSlide || !slide.title) {
+    // Title slide - no content panel
+    return `
+      <!-- Slide ${slide.id} - Title Banner -->
+      <div class="slide${slide.id === 1 ? " active" : ""}" data-slide="${slide.id}">
+        <div
+          class="slide-bg"
+          style="
+            background-image: url(&quot;${bgFilename}&quot;);
+            filter: brightness(1);
+          "
+        ></div>
+      </div>`;
+  }
+
+  const titleHtml = slide.title.replace(/\n/g, "<br />");
+  const contentClass = slide.contentPosition === "left" ? "slide-content left" : "slide-content";
+  const bulletsHtml = slide.bullets
+    ? slide.bullets
+        .map((bullet) => `            <li>\n              ${bullet}\n            </li>`)
+        .join("\n")
+    : "";
+
+  return `
+      <!-- Slide ${slide.id} -->
+      <div class="slide" data-slide="${slide.id}">
+        <div
+          class="slide-bg"
+          style="background-image: url(&quot;${bgFilename}&quot;)"
+        ></div>
+        <div class="${contentClass}">
+          <div class="slide-number">${slide.chapter || ""}</div>
+          <h2 class="slide-title">${titleHtml}</h2>
+          <ul class="slide-bullets">
+${bulletsHtml}
+          </ul>
+        </div>
+      </div>`;
+}
+
+function generateFullHtml(): string {
+  const slidesHtml = slides.map(generateSlideHtml).join("\n");
+  const totalSlides = slides.length;
+
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HackedServer - Thread Design</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Outfit:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Outfit", sans-serif;
+        background: #0a0510;
+        color: white;
+        overflow: hidden;
+      }
+
+      .slides-container {
+        width: 100vw;
+        height: 100vh;
+        position: relative;
+      }
+
+      .slide {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        visibility: hidden;
+        transition:
+          opacity 0.6s ease,
+          visibility 0.6s ease;
+      }
+
+      .slide.active {
+        opacity: 1;
+        visibility: visible;
+      }
+
+      .slide-bg {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-size: cover;
+        background-position: center;
+        filter: brightness(0.85);
+      }
+
+      /* Decorative frame overlay */
+      .slide::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        border: 3px solid rgba(0, 230, 255, 0.15);
+        pointer-events: none;
+        z-index: 50;
+      }
+
+      /* Corner accents */
+      .corner-accent {
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        z-index: 60;
+        pointer-events: none;
+      }
+
+      .corner-accent::before,
+      .corner-accent::after {
+        content: "";
+        position: absolute;
+        background: linear-gradient(90deg, #00e6ff, transparent);
+      }
+
+      .corner-accent.top-left {
+        top: 15px;
+        left: 15px;
+      }
+      .corner-accent.top-left::before {
+        top: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+      }
+      .corner-accent.top-left::after {
+        top: 0;
+        left: 0;
+        width: 3px;
+        height: 60px;
+        background: linear-gradient(180deg, #00e6ff, transparent);
+      }
+
+      .corner-accent.top-right {
+        top: 15px;
+        right: 15px;
+      }
+      .corner-accent.top-right::before {
+        top: 0;
+        right: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(-90deg, #00e6ff, transparent);
+      }
+      .corner-accent.top-right::after {
+        top: 0;
+        right: 0;
+        width: 3px;
+        height: 60px;
+        background: linear-gradient(180deg, #00e6ff, transparent);
+      }
+
+      .corner-accent.bottom-left {
+        bottom: 15px;
+        left: 15px;
+      }
+      .corner-accent.bottom-left::before {
+        bottom: 0;
+        left: 0;
+        width: 60px;
+        height: 3px;
+      }
+      .corner-accent.bottom-left::after {
+        bottom: 0;
+        left: 0;
+        width: 3px;
+        height: 60px;
+        background: linear-gradient(0deg, #00e6ff, transparent);
+      }
+
+      .corner-accent.bottom-right {
+        bottom: 15px;
+        right: 15px;
+      }
+      .corner-accent.bottom-right::before {
+        bottom: 0;
+        right: 0;
+        width: 60px;
+        height: 3px;
+        background: linear-gradient(-90deg, #00e6ff, transparent);
+      }
+      .corner-accent.bottom-right::after {
+        bottom: 0;
+        right: 0;
+        width: 3px;
+        height: 60px;
+        background: linear-gradient(0deg, #00e6ff, transparent);
+      }
+
+      .slide-content {
+        position: absolute;
+        right: 0;
+        top: 0;
+        height: 100%;
+        width: 40%;
+        min-width: 450px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 3rem 2.5rem;
+        background: linear-gradient(
+          135deg,
+          rgba(8, 4, 24, 0.94) 0%,
+          rgba(15, 8, 35, 0.9) 50%,
+          rgba(10, 5, 30, 0.88) 100%
+        );
+        backdrop-filter: blur(16px);
+        border-left: 3px solid rgba(0, 230, 255, 0.5);
+        box-shadow:
+          -20px 0 60px rgba(0, 180, 255, 0.15),
+          inset 1px 0 0 rgba(255, 255, 255, 0.05);
+      }
+
+      .slide-content.left {
+        right: auto;
+        left: 0;
+        border-left: none;
+        border-right: 3px solid rgba(0, 230, 255, 0.5);
+        box-shadow:
+          20px 0 60px rgba(0, 180, 255, 0.15),
+          inset -1px 0 0 rgba(255, 255, 255, 0.05);
+      }
+
+      /* Decorative line above content */
+      .slide-content::before {
+        content: "";
+        position: absolute;
+        top: 2rem;
+        left: 2rem;
+        right: 2rem;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(0, 230, 255, 0.3),
+          transparent
+        );
+      }
+
+      /* Decorative line below content */
+      .slide-content::after {
+        content: "";
+        position: absolute;
+        bottom: 2rem;
+        left: 2rem;
+        right: 2rem;
+        height: 1px;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(0, 230, 255, 0.3),
+          transparent
+        );
+      }
+
+      .slide-number {
+        font-family: "Press Start 2P", monospace;
+        font-size: 0.6rem;
+        color: rgba(0, 230, 255, 0.5);
+        letter-spacing: 4px;
+        margin-bottom: 0.75rem;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .slide-number::before {
+        content: "";
+        width: 20px;
+        height: 2px;
+        background: rgba(0, 230, 255, 0.5);
+      }
+
+      .slide-title {
+        font-family: "Press Start 2P", monospace;
+        font-size: 1.15rem;
+        line-height: 1.9;
+        color: #00e6ff;
+        text-shadow:
+          0 0 30px rgba(0, 230, 255, 0.5),
+          0 0 60px rgba(0, 230, 255, 0.2);
+        margin-bottom: 2rem;
+        letter-spacing: 1px;
+      }
+
+      .slide-bullets {
+        list-style: none;
+      }
+
+      .slide-bullets li {
+        position: relative;
+        padding-left: 1.75rem;
+        margin-bottom: 1.5rem;
+        font-size: 1.1rem;
+        line-height: 1.75;
+        color: rgba(255, 255, 255, 0.94);
+        font-weight: 400;
+      }
+
+      .slide-bullets li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.65rem;
+        width: 10px;
+        height: 10px;
+        background: #00e6ff;
+        box-shadow:
+          0 0 10px rgba(0, 230, 255, 0.8),
+          0 0 20px rgba(0, 230, 255, 0.4);
+        clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+      }
+
+      .slide-bullets li strong {
+        color: #00e6ff;
+        font-weight: 600;
+      }
+
+      .slide-bullets li code {
+        font-family: "Press Start 2P", monospace;
+        font-size: 0.55rem;
+        background: rgba(0, 230, 255, 0.12);
+        padding: 0.25rem 0.6rem;
+        border-radius: 3px;
+        color: #7dffff;
+        border: 1px solid rgba(0, 230, 255, 0.2);
+      }
+
+      /* Brand badge */
+      .brand-badge {
+        position: fixed;
+        bottom: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 100;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.6rem 1.25rem;
+        background: rgba(8, 4, 24, 0.85);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 230, 255, 0.25);
+        border-radius: 6px;
+        transition: opacity 0.3s ease;
+      }
+
+      .brand-badge .diamond {
+        width: 12px;
+        height: 12px;
+        background: #00e6ff;
+        clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+        box-shadow: 0 0 10px rgba(0, 230, 255, 0.6);
+      }
+
+      .brand-badge span {
+        font-family: "Press Start 2P", monospace;
+        font-size: 0.55rem;
+        color: rgba(255, 255, 255, 0.7);
+        letter-spacing: 2px;
+      }
+
+      /* Slide indicator - stylized */
+      .slide-indicator {
+        position: fixed;
+        top: 1.5rem;
+        left: 50%;
+        transform: translateX(-50%);
+        font-family: "Press Start 2P", monospace;
+        font-size: 0.6rem;
+        color: rgba(0, 230, 255, 0.6);
+        z-index: 100;
+        padding: 0.5rem 1.25rem;
+        background: rgba(8, 4, 24, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(0, 230, 255, 0.2);
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+
+      .slide-indicator .current {
+        color: #00e6ff;
+        text-shadow: 0 0 10px rgba(0, 230, 255, 0.5);
+      }
+
+      /* Glowing orbs decoration */
+      .glow-orb {
+        position: absolute;
+        border-radius: 50%;
+        pointer-events: none;
+        z-index: 5;
+      }
+
+      .glow-orb.orb-1 {
+        width: 300px;
+        height: 300px;
+        top: -100px;
+        right: 30%;
+        background: radial-gradient(
+          circle,
+          rgba(0, 230, 255, 0.08) 0%,
+          transparent 70%
+        );
+      }
+
+      .glow-orb.orb-2 {
+        width: 200px;
+        height: 200px;
+        bottom: 10%;
+        left: 10%;
+        background: radial-gradient(
+          circle,
+          rgba(138, 43, 226, 0.06) 0%,
+          transparent 70%
+        );
+      }
+
+      /* Animations */
+      .slide.active .slide-title {
+        animation: fadeSlideIn 0.6s ease 0.2s both;
+      }
+
+      .slide.active .slide-bullets li {
+        animation: fadeSlideIn 0.5s ease both;
+      }
+
+      .slide.active .slide-bullets li:nth-child(1) {
+        animation-delay: 0.3s;
+      }
+      .slide.active .slide-bullets li:nth-child(2) {
+        animation-delay: 0.45s;
+      }
+      .slide.active .slide-bullets li:nth-child(3) {
+        animation-delay: 0.6s;
+      }
+
+      @keyframes fadeSlideIn {
+        from {
+          opacity: 0;
+          transform: translateY(20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      /* Scanline effect for cyberpunk vibe */
+      .scanlines {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 200;
+        background: repeating-linear-gradient(
+          0deg,
+          transparent,
+          transparent 2px,
+          rgba(0, 0, 0, 0.03) 2px,
+          rgba(0, 0, 0, 0.03) 4px
+        );
+      }
+    </style>
+  </head>
+  <body>
+    <div class="scanlines"></div>
+
+    <div class="slides-container">
+      <!-- Corner accents (shared) -->
+      <div class="corner-accent top-left"></div>
+      <div class="corner-accent top-right"></div>
+      <div class="corner-accent bottom-left"></div>
+      <div class="corner-accent bottom-right"></div>
+
+      <!-- Glow orbs -->
+      <div class="glow-orb orb-1"></div>
+      <div class="glow-orb orb-2"></div>
+${slidesHtml}
+    </div>
+
+    <!-- Brand badge -->
+    <div class="brand-badge" style="opacity: 0">
+      <div class="diamond"></div>
+      <span>HACKEDSERVER</span>
+      <div class="diamond"></div>
+    </div>
+
+    <!-- Slide indicator -->
+    <div class="slide-indicator">
+      <span class="current" id="currentSlide">1</span>
+      <span>/</span>
+      <span>${totalSlides}</span>
+    </div>
+
+    <script>
+      let currentSlide = 0;
+      const slides = document.querySelectorAll(".slide");
+      const totalSlides = slides.length;
+      const params = new URLSearchParams(window.location.search);
+      const mode = params.get("mode") || "embedded";
+
+      function notifyParent() {
+        window.parent.postMessage(
+          {
+            type: "slideChange",
+            currentSlide: currentSlide,
+            totalSlides: totalSlides,
+            mode: mode,
+          },
+          "*"
+        );
+      }
+
+      function updateSlide() {
+        slides.forEach((slide, index) => {
+          slide.classList.toggle("active", index === currentSlide);
+        });
+        document.getElementById("currentSlide").textContent = currentSlide + 1;
+        // Hide brand badge and slide indicator on first slide (banner)
+        document.querySelector(".brand-badge").style.opacity =
+          currentSlide === 0 ? "0" : "1";
+        document.querySelector(".slide-indicator").style.opacity =
+          currentSlide === 0 ? "0" : "1";
+        notifyParent();
+      }
+
+      function nextSlide() {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        updateSlide();
+      }
+
+      function prevSlide() {
+        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+        updateSlide();
+      }
+
+      function goToSlide(index) {
+        currentSlide = index;
+        updateSlide();
+      }
+
+      // Listen for commands from parent
+      window.addEventListener("message", (e) => {
+        if (e.data.type === "next") nextSlide();
+        else if (e.data.type === "prev") prevSlide();
+        else if (e.data.type === "goTo") goToSlide(e.data.index);
+        else if (e.data.type === "getState") notifyParent();
+      });
+
+      // Keyboard navigation (for easy screenshot capture)
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight" || e.key === " ") {
+          nextSlide();
+        } else if (e.key === "ArrowLeft") {
+          prevSlide();
+        } else if (e.key >= "1" && e.key <= "${totalSlides}") {
+          goToSlide(parseInt(e.key) - 1);
+        }
+      });
+
+      // Initialize on page load
+      // Support URL param ?slide=1..N (1-based) to choose initial slide
+      (function initFromUrlParam() {
+        const params = new URLSearchParams(window.location.search);
+        const slideParam = params.get("slide") || params.get("s");
+        if (slideParam != null) {
+          const parsed = parseInt(slideParam, 10);
+          if (!Number.isNaN(parsed)) {
+            const clamped = Math.min(Math.max(parsed, 1), totalSlides);
+            currentSlide = clamped - 1; // convert to 0-based index
+          }
+        }
+      })();
+      updateSlide();
+    </script>
+  </body>
+</html>
+`;
+}
+
+async function main() {
+  console.log("Generating thread HTML from slides.ts...");
+  const html = generateFullHtml();
+  fs.writeFileSync(OUTPUT_PATH, html);
+  console.log(`Generated: ${OUTPUT_PATH}`);
+}
+
+main().catch((err) => {
+  console.error("Failed to generate HTML:", err);
+  process.exit(1);
+});
