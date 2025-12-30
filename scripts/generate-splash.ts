@@ -57,12 +57,20 @@ async function generateSplashScreenshots() {
 
     console.log(`  [${slideId}/${SLIDE_COUNT}] Converting to WebP...`);
 
-    // Convert to WebP using ImageMagick
-    try {
-      execSync(`magick "${pngPath}" -quality 85 "${webpPath}"`, { stdio: "inherit" });
-      fs.unlinkSync(pngPath);
-      console.log(`  [${slideId}/${SLIDE_COUNT}] Saved ${webpPath}`);
-    } catch {
+    // Convert to WebP using ImageMagick (try v7 'magick' first, then v6 'convert')
+    let converted = false;
+    for (const cmd of ["magick", "convert"]) {
+      try {
+        execSync(`${cmd} "${pngPath}" -quality 85 "${webpPath}"`, { stdio: "pipe" });
+        fs.unlinkSync(pngPath);
+        console.log(`  [${slideId}/${SLIDE_COUNT}] Saved ${webpPath}`);
+        converted = true;
+        break;
+      } catch {
+        // Try next command
+      }
+    }
+    if (!converted) {
       // Fallback: keep PNG if ImageMagick not available
       console.log(`  [${slideId}/${SLIDE_COUNT}] ImageMagick not available, keeping PNG`);
       fs.renameSync(pngPath, path.join(OUTPUT_DIR, `${slideId}.png`));
