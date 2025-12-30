@@ -7,7 +7,7 @@ const WIDTH = 2120;
 const HEIGHT = 1200;
 const SLIDE_COUNT = 5;
 const OUTPUT_DIR = path.join(process.cwd(), "public", "splash");
-const BASE_URL = process.env.BASE_URL || "http://localhost:3000";
+const THREAD_HTML = path.join(process.cwd(), "public", "thread", "index.html");
 
 async function generateSplashScreenshots() {
   // Ensure output directory exists
@@ -15,8 +15,13 @@ async function generateSplashScreenshots() {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   }
 
+  // Verify thread HTML exists
+  if (!fs.existsSync(THREAD_HTML)) {
+    throw new Error(`Thread HTML not found at ${THREAD_HTML}`);
+  }
+
   console.log(`Generating ${SLIDE_COUNT} splash screenshots at ${WIDTH}x${HEIGHT}...`);
-  console.log(`Base URL: ${BASE_URL}`);
+  console.log(`Using: ${THREAD_HTML}`);
 
   const browser = await chromium.launch();
   const context = await browser.newContext({
@@ -27,16 +32,17 @@ async function generateSplashScreenshots() {
   const page = await context.newPage();
 
   for (let slideId = 1; slideId <= SLIDE_COUNT; slideId++) {
-    const url = `${BASE_URL}/screenshots/${slideId}`;
+    // Use file:// protocol with ?slide= parameter
+    const url = `file://${THREAD_HTML}?slide=${slideId}`;
     const pngPath = path.join(OUTPUT_DIR, `${slideId}.png`);
     const webpPath = path.join(OUTPUT_DIR, `${slideId}.webp`);
 
-    console.log(`  [${slideId}/${SLIDE_COUNT}] Capturing ${url}...`);
+    console.log(`  [${slideId}/${SLIDE_COUNT}] Capturing slide ${slideId}...`);
 
     await page.goto(url, { waitUntil: "networkidle" });
 
     // Wait for animations to complete
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
     // Save as PNG first (better quality for conversion)
     await page.screenshot({

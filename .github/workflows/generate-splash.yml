@@ -30,16 +30,8 @@ jobs:
       - name: Install ImageMagick
         run: sudo apt-get update && sudo apt-get install -y imagemagick
 
-      - name: Build Next.js app
-        run: npm run build
-
-      - name: Start server and generate screenshots
-        run: |
-          npm run start &
-          SERVER_PID=$!
-          sleep 10
-          npm run generate:splash
-          kill $SERVER_PID || true
+      - name: Generate screenshots
+        run: npm run generate:splash
 
       - name: Check for changes
         id: changes
